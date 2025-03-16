@@ -9,6 +9,16 @@ npm install
 npm run dev
 ```
 
+## Truy cập Admin
+
+Để truy cập trang quản trị, hãy truy cập `/admin` và sử dụng mã truy cập sau:
+
+```
+admin123
+```
+
+**Lưu ý**: Đây chỉ là mã truy cập đơn giản cho mục đích demo. Trong môi trường thực tế, bạn nên sử dụng hệ thống xác thực an toàn hơn.
+
 ## Tính năng
 
 - Thiết kế responsive với Tailwind CSS
