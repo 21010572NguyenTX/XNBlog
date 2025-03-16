@@ -6,10 +6,14 @@
 [build.environment]
   NODE_VERSION = "18"
 
+# This is the critical part for fixing 404 errors with SSR
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to = "/.netlify/functions/entry"
   status = 200
 
 [functions]
   node_bundler = "esbuild"
+  # This directory is critical for Astro SSR
+  directory = "functions"
+  included_files = ["dist/**"]
