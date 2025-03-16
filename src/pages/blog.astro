@@ -1,0 +1,204 @@
+---
+import Layout from '../layouts/Layout.astro';
+import BlogCard from '../components/BlogCard.astro';
+import SearchBar from '../components/SearchBar.astro';
+import { supabase } from '../lib/supabase';
+
+// Lấy tham số từ URL
+const url = new URL(Astro.request.url);
+const categorySlug = url.searchParams.get('category') || '';
+const searchQuery = url.searchParams.get('q') || '';
+const currentPage = parseInt(url.searchParams.get('page') || '1');
+
+// Xây dựng truy vấn Supabase
+let query = supabase
+  .from('posts')
+  .select('*')
+  .eq('status', 'published')
+  .eq('post_type', 'post') // Chỉ lấy bài viết loại post
+  .order('created_at', { ascending: false });
+
+// Thêm điều kiện tìm kiếm nếu có
+if (searchQuery) {
+  query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%`);
+}
+
+// Lấy bài viết từ database
+const { data: posts, error } = await query;
+
+// Lọc bài viết theo danh mục nếu có
+let filteredPosts = posts || [];
+if (categorySlug && posts) {
+  // Lấy category_id từ slug
+  const { data: categoryData } = await supabase
+    .from('categories')
+    .select('id')
+    .eq('slug', categorySlug)
+    .single();
+  
+  if (categoryData) {
+    // Lấy post_id từ bảng post_categories
+    const { data: postCategoriesData } = await supabase
+      .from('post_categories')
+      .select('post_id')
+      .eq('category_id', categoryData.id);
+    
+    if (postCategoriesData && postCategoriesData.length > 0) {
+      const postIds = postCategoriesData.map(item => item.post_id);
+      filteredPosts = posts.filter(post => postIds.includes(post.id));
+    } else {
+      filteredPosts = [];
+    }
+  }
+}
+
+// Lấy danh mục cho mỗi bài viết
+if (filteredPosts) {
+  for (const post of filteredPosts) {
+    const { data: postCategories } = await supabase
+      .from('post_categories')
+      .select('category_id')
+      .eq('post_id', post.id);
+    
+    if (postCategories && postCategories.length > 0) {
+      const categoryIds = postCategories.map(pc => pc.category_id);
+      
+      const { data: categories } = await supabase
+        .from('categories')
+        .select('name, slug')
+        .in('id', categoryIds);
+      
+      post.categories = categories || [];
+    } else {
+      post.categories = [];
+    }
+  }
+}
+
+// Phân trang
+const postsPerPage = 6;
+const totalPosts = filteredPosts.length;
+const totalPages = Math.ceil(totalPosts / postsPerPage);
+const paginatedPosts = filteredPosts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
+
+// Lấy tất cả danh mục để hiển thị
+const { data: allCategories } = await supabase
+  .from('categories')
+  .select('name, slug')
+  .order('name', { ascending: true });
+
+// Debug
+console.log(`Tổng số bài viết: ${posts?.length || 0}`);
+console.log(`Bài viết đã lọc: ${filteredPosts.length}`);
+console.log(`Bài viết hiển thị: ${paginatedPosts.length}`);
+---
+
+<Layout title="Blog | Blog cá nhân" description="Các bài viết chia sẻ kinh nghiệm và kiến thức">
+  <section class="py-12">
+    <div class="container mx-auto px-4">
+      <h1 class="text-4xl font-heading font-bold mb-6 text-center gradient-text">Blog cá nhân</h1>
+      <p class="text-gray-600 text-center max-w-3xl mx-auto mb-12">
+        Nơi chia sẻ những kinh nghiệm, kiến thức và suy nghĩ cá nhân về thiết kế, lập trình và công nghệ.
+      </p>
+      
+      <div class="mb-12">
+        <form action="/blog" method="get" class="max-w-2xl mx-auto">
+          <div class="relative">
+            <input 
+              type="text" 
+              name="q"
+              value={searchQuery}
+              placeholder="Tìm kiếm bài viết..." 
+              class="pl-10 pr-4 py-3 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 w-full"
+            />
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <button type="submit" class="absolute right-3 top-1/2 transform -translate-y-1/2 bg-primary text-white px-4 py-1 rounded-full text-sm">Tìm kiếm</button>
+          </div>
+        </form>
+      </div>
+      
+      <div class="flex flex-wrap gap-4 mb-12 justify-center">
+        <a href="/blog" class={`px-4 py-2 rounded-full ${!categorySlug ? 'bg-primary text-white' : 'bg-white shadow-sm hover:shadow-md transition-all duration-300'} text-sm`}>
+          Tất cả
+        </a>
+        {allCategories && allCategories.map((category) => (
+          <a 
+            href={`/blog?category=${category.slug}`} 
+            class={`px-4 py-2 rounded-full ${categorySlug === category.slug ? 'bg-primary text-white' : 'bg-white shadow-sm hover:shadow-md transition-all duration-300'} text-sm`}
+          >
+            {category.name}
+          </a>
+        ))}
+      </div>
+      
+      {searchQuery && (
+        <div class="text-center mb-8">
+          <p class="text-gray-600">Kết quả tìm kiếm cho: <span class="font-medium">{searchQuery}</span> ({filteredPosts.length} bài viết)</p>
+        </div>
+      )}
+      
+      {paginatedPosts && paginatedPosts.length > 0 ? (
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {paginatedPosts.map((post) => (
+            <BlogCard
+              title={post.title || ""}
+              description={post.description || ""}
+              date={post.created_at ? new Date(post.created_at).toLocaleDateString('vi-VN') : ""}
+              author={post.author || 'Admin'}
+              image={post.image_url || '/images/blog-1.jpg'}
+              url={`/blog/${post.slug || ""}`}
+              categories={post.categories || []}
+            />
+          ))}
+        </div>
+      ) : (
+        <div class="text-center py-16">
+          <h3 class="text-2xl font-bold mb-4">Không tìm thấy bài viết</h3>
+          <p class="text-gray-600 mb-8">
+            {searchQuery 
+              ? `Không có bài viết nào phù hợp với từ khóa "${searchQuery}".` 
+              : categorySlug 
+                ? "Không có bài viết nào trong danh mục này." 
+                : "Chưa có bài viết nào được đăng."}
+          </p>
+          <a href="/blog" class="btn btn-primary">Xem tất cả bài viết</a>
+        </div>
+      )}
+      
+      {totalPages > 1 && (
+        <div class="flex justify-center mt-12">
+          <nav class="inline-flex rounded-md shadow">
+            {currentPage > 1 && (
+              <a 
+                href={`/blog?page=${currentPage - 1}${searchQuery ? `&q=${searchQuery}` : ''}${categorySlug ? `&category=${categorySlug}` : ''}`} 
+                class="py-2 px-4 border border-gray-300 bg-white rounded-l-md hover:bg-gray-50"
+              >
+                Trước
+              </a>
+            )}
+            
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <a 
+                href={`/blog?page=${page}${searchQuery ? `&q=${searchQuery}` : ''}${categorySlug ? `&category=${categorySlug}` : ''}`} 
+                class={`py-2 px-4 border-t border-b border-gray-300 ${currentPage === page ? 'bg-primary text-white' : 'bg-white hover:bg-gray-50'}`}
+              >
+                {page}
+              </a>
+            ))}
+            
+            {currentPage < totalPages && (
+              <a 
+                href={`/blog?page=${currentPage + 1}${searchQuery ? `&q=${searchQuery}` : ''}${categorySlug ? `&category=${categorySlug}` : ''}`} 
+                class="py-2 px-4 border border-gray-300 bg-white rounded-r-md hover:bg-gray-50"
+              >
+                Sau
+              </a>
+            )}
+          </nav>
+        </div>
+      )}
+    </div>
+  </section>
+</Layout>

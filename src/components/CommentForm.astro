@@ -1,0 +1,212 @@
+---
+import { supabase } from '../lib/supabase';
+
+const { postId } = Astro.props;
+
+// Khởi tạo biến để lưu trạng thái
+let message = '';
+let messageType = '';
+let newComment = null;
+
+// Xử lý form submission
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const name = formData.get('name');
+    const content = formData.get('content');
+    const parentId = formData.get('parent_id') || null;
+    
+    // Kiểm tra dữ liệu
+    if (!name || !content) {
+      message = 'Vui lòng điền đầy đủ thông tin';
+      messageType = 'error';
+    } else {
+      // Thêm bình luận vào Supabase
+      const { data, error } = await supabase
+        .from('comments')
+        .insert({
+          post_id: postId,
+          name,
+          content,
+          parent_id: parentId
+        })
+        .select();
+      
+      if (error) {
+        message = error.message;
+        messageType = 'error';
+      } else {
+        message = 'Bình luận của bạn đã được gửi thành công!';
+        messageType = 'success';
+        newComment = data[0];
+      }
+    }
+  } catch (error) {
+    console.error('Lỗi khi gửi bình luận:', error);
+    message = 'Đã xảy ra lỗi khi gửi bình luận';
+    messageType = 'error';
+  }
+}
+---
+
+<div class="bg-white p-8 rounded-xl shadow-md">
+  <h4 class="text-xl font-bold mb-6">Để lại bình luận</h4>
+  
+  {message && (
+    <div class={`p-4 mb-6 rounded-lg ${messageType === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+      {message}
+    </div>
+  )}
+  
+  <form method="POST" id="comment-form" class="space-y-6">
+    <input type="hidden" name="parent_id" id="parent_id" value="" />
+    
+    <div>
+      <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Họ tên</label>
+      <input 
+        type="text" 
+        id="name" 
+        name="name" 
+        required
+        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+        placeholder="Nhập họ tên của bạn"
+      />
+    </div>
+    
+    <div>
+      <label for="content" class="block text-sm font-medium text-gray-700 mb-2">Nội dung bình luận</label>
+      <textarea 
+        id="content" 
+        name="content" 
+        rows="4" 
+        required
+        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+        placeholder="Nhập nội dung bình luận của bạn"
+      ></textarea>
+    </div>
+    
+    <div class="flex items-center justify-between">
+      <div id="reply-info" class="hidden">
+        <span class="text-sm text-gray-600">Đang trả lời: <span id="reply-to-name" class="font-medium"></span></span>
+        <button type="button" id="cancel-reply" class="text-sm text-red-500 ml-2 hover:underline">Hủy</button>
+      </div>
+      
+      <button 
+        type="submit"
+        class="bg-gradient-to-r from-primary to-secondary text-white font-medium py-3 px-6 rounded-lg hover:shadow-lg hover:shadow-primary/20 transition-all duration-300"
+      >
+        Gửi bình luận
+      </button>
+    </div>
+  </form>
+  
+  {newComment && (
+    <div class="mt-8 p-6 bg-primary/5 rounded-xl border border-primary/10 animate-fade-up">
+      <div class="flex justify-between mb-4">
+        <div class="font-bold">{newComment.name}</div>
+        <div class="text-sm text-gray-600">{new Date(newComment.created_at).toLocaleDateString('vi-VN')}</div>
+      </div>
+      <p>{newComment.content}</p>
+      <div class="mt-4 text-sm text-primary">Bình luận của bạn đã được gửi thành công!</div>
+    </div>
+  )}
+</div>
+
+<script>
+  // Xử lý form submission và tính năng trả lời
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('comment-form');
+    const parentIdInput = document.getElementById('parent_id');
+    const replyInfo = document.getElementById('reply-info');
+    const replyToName = document.getElementById('reply-to-name');
+    const cancelReply = document.getElementById('cancel-reply');
+    
+    // Thêm sự kiện cho các nút trả lời
+    document.querySelectorAll('.reply-button').forEach(button => {
+      button.addEventListener('click', (e) => {
+        e.preventDefault();
+        const commentId = button.dataset.commentId;
+        const commentName = button.dataset.commentName;
+        
+        // Cập nhật form để trả lời
+        parentIdInput.value = commentId;
+        replyToName.textContent = commentName;
+        replyInfo.classList.remove('hidden');
+        
+        // Cuộn đến form
+        form.scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+    
+    // Hủy trả lời
+    if (cancelReply) {
+      cancelReply.addEventListener('click', () => {
+        parentIdInput.value = '';
+        replyInfo.classList.add('hidden');
+      });
+    }
+    
+    // Xử lý nút thích
+    document.querySelectorAll('.like-button').forEach(button => {
+      button.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const commentId = button.dataset.commentId;
+        const likeCount = button.querySelector('.like-count');
+        
+        // Kiểm tra xem đã thích chưa
+        const hasLiked = localStorage.getItem(`liked_${commentId}`);
+        
+        if (hasLiked) {
+          // Đã thích rồi, bỏ thích
+          button.classList.remove('text-red-500');
+          button.classList.add('text-gray-400');
+          if (likeCount) {
+            const currentCount = parseInt(likeCount.textContent);
+            likeCount.textContent = Math.max(0, currentCount - 1);
+          }
+          localStorage.removeItem(`liked_${commentId}`);
+        } else {
+          // Chưa thích, thêm thích
+          button.classList.remove('text-gray-400');
+          button.classList.add('text-red-500');
+          if (likeCount) {
+            const currentCount = parseInt(likeCount.textContent);
+            likeCount.textContent = currentCount + 1;
+          }
+          localStorage.setItem(`liked_${commentId}`, 'true');
+          
+          // Gửi yêu cầu tăng lượt thích
+          try {
+            const response = await fetch('/api/like-comment', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ commentId }),
+            });
+          } catch (error) {
+            console.error('Lỗi khi thích bình luận:', error);
+          }
+        }
+      });
+    });
+    
+    // Reset form sau khi submit thành công
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        // Form vẫn được xử lý bởi Astro, không cần ngăn chặn hành vi mặc định
+        
+        // Nếu có thông báo thành công, làm sạch form
+        const successMessage = document.querySelector('.bg-green-100');
+        if (successMessage) {
+          // Reset form fields
+          setTimeout(() => {
+            form.reset();
+            if (parentIdInput) parentIdInput.value = '';
+            if (replyInfo) replyInfo.classList.add('hidden');
+          }, 100);
+        }
+      });
+    }
+  });
+</script>

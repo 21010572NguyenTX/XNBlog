@@ -1,0 +1,141 @@
+---
+import BlogCard from './BlogCard.astro';
+import { supabase } from '../lib/supabase';
+
+// Lấy tham số từ URL
+const url = new URL(Astro.request.url);
+const categorySlug = url.searchParams.get('category') || '';
+const searchQuery = url.searchParams.get('q') || '';
+const currentPage = parseInt(url.searchParams.get('page') || '1');
+
+// Xây dựng truy vấn Supabase
+let query = supabase
+  .from('posts')
+  .select('*')
+  .eq('status', 'published')
+  .order('created_at', { ascending: false });
+
+// Thêm điều kiện tìm kiếm nếu có
+if (searchQuery) {
+  query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%`);
+}
+
+// Lấy bài viết từ database
+const { data: posts, error } = await query;
+
+// Lọc bài viết theo danh mục nếu có
+let filteredPosts = posts || [];
+if (categorySlug && posts) {
+  // Lấy category_id từ slug
+  const { data: categoryData } = await supabase
+    .from('categories')
+    .select('id')
+    .eq('slug', categorySlug)
+    .single();
+  
+  if (categoryData) {
+    // Lấy post_id từ bảng post_categories
+    const { data: postCategoriesData } = await supabase
+      .from('post_categories')
+      .select('post_id')
+      .eq('category_id', categoryData.id);
+    
+    if (postCategoriesData && postCategoriesData.length > 0) {
+      const postIds = postCategoriesData.map(item => item.post_id);
+      filteredPosts = posts.filter(post => postIds.includes(post.id));
+    } else {
+      filteredPosts = [];
+    }
+  }
+}
+
+// Lấy danh mục cho mỗi bài viết
+if (filteredPosts) {
+  for (const post of filteredPosts) {
+    const { data: postCategories } = await supabase
+      .from('post_categories')
+      .select('category_id')
+      .eq('post_id', post.id);
+    
+    if (postCategories && postCategories.length > 0) {
+      const categoryIds = postCategories.map(pc => pc.category_id);
+      
+      const { data: categories } = await supabase
+        .from('categories')
+        .select('name, slug')
+        .in('id', categoryIds);
+      
+      post.categories = categories || [];
+    } else {
+      post.categories = [];
+    }
+  }
+}
+
+// Phân trang
+const postsPerPage = 6;
+const totalPosts = filteredPosts.length;
+const totalPages = Math.ceil(totalPosts / postsPerPage);
+const paginatedPosts = filteredPosts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
+---
+
+{paginatedPosts && paginatedPosts.length > 0 ? (
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+    {paginatedPosts.map((post) => (
+      <BlogCard
+        title={post.title || ""}
+        description={post.description || ""}
+        date={post.created_at ? new Date(post.created_at).toLocaleDateString('vi-VN') : ""}
+        author={post.author || 'Admin'}
+        image={post.image_url || '/images/blog-1.jpg'}
+        url={`/blog/${post.slug || ""}`}
+        categories={post.categories || []}
+      />
+    ))}
+  </div>
+) : (
+  <div class="text-center py-16">
+    <h3 class="text-2xl font-bold mb-4">Không tìm thấy bài viết</h3>
+    <p class="text-gray-600 mb-8">
+      {searchQuery 
+        ? `Không có bài viết nào phù hợp với từ khóa "${searchQuery}".` 
+        : categorySlug 
+          ? "Không có bài viết nào trong danh mục này." 
+          : "Chưa có bài viết nào được đăng."}
+    </p>
+    <a href="/blog" class="btn btn-primary">Xem tất cả bài viết</a>
+  </div>
+)}
+
+{totalPages > 1 && (
+  <div class="flex justify-center mt-12">
+    <nav class="inline-flex rounded-md shadow">
+      {currentPage > 1 && (
+        <a 
+          href={`?page=${currentPage - 1}${searchQuery ? `&q=${searchQuery}` : ''}${categorySlug ? `&category=${categorySlug}` : ''}`} 
+          class="py-2 px-4 border border-gray-300 bg-white rounded-l-md hover:bg-gray-50"
+        >
+          Trước
+        </a>
+      )}
+      
+      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+        <a 
+          href={`?page=${page}${searchQuery ? `&q=${searchQuery}` : ''}${categorySlug ? `&category=${categorySlug}` : ''}`} 
+          class={`py-2 px-4 border-t border-b border-gray-300 ${currentPage === page ? 'bg-primary text-white' : 'bg-white hover:bg-gray-50'}`}
+        >
+          {page}
+        </a>
+      ))}
+      
+      {currentPage < totalPages && (
+        <a 
+          href={`?page=${currentPage + 1}${searchQuery ? `&q=${searchQuery}` : ''}${categorySlug ? `&category=${categorySlug}` : ''}`} 
+          class="py-2 px-4 border border-gray-300 bg-white rounded-r-md hover:bg-gray-50"
+        >
+          Sau
+        </a>
+      )}
+    </nav>
+  </div>
+)}

@@ -1,0 +1,123 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { supabase } from '../../lib/supabase';
+
+// Kiểm tra xem người dùng đã đăng nhập chưa
+let isLoggedIn = false;
+let loginError = null;
+
+// Xử lý đăng nhập
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const email = formData.get('email')?.toString();
+    const password = formData.get('password')?.toString();
+    
+    console.log('Đang thử đăng nhập với email:', email);
+    
+    if (!email || !password) {
+      loginError = 'Vui lòng nhập email và mật khẩu';
+    } else {
+      // Đăng nhập với Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        console.error('Lỗi Supabase:', error);
+        loginError = error.message || 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.';
+      } else if (data?.user) {
+        console.log('Đăng nhập thành công:', data.user.email);
+        
+        // Kiểm tra xem người dùng có phải admin không
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+        
+        if (userError) {
+          console.error('Lỗi khi kiểm tra quyền admin:', userError);
+          loginError = 'Lỗi khi xác thực quyền admin';
+        } else if (userData?.role !== 'admin') {
+          loginError = 'Tài khoản của bạn không có quyền truy cập trang admin';
+        } else {
+          // Đăng nhập thành công và có quyền admin
+          return Astro.redirect('/admin/dashboard');
+        }
+      } else {
+        loginError = 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.';
+      }
+    }
+  } catch (error) {
+    console.error('Lỗi khi đăng nhập:', error);
+    loginError = 'Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại sau.';
+  }
+}
+
+// Kiểm tra phiên đăng nhập hiện tại
+const { data: { session } } = await supabase.auth.getSession();
+if (session) {
+  // Kiểm tra xem người dùng có phải admin không
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', session.user.id)
+    .single();
+  
+  if (!userError && userData?.role === 'admin') {
+    isLoggedIn = true;
+    return Astro.redirect('/admin/dashboard');
+  }
+}
+---
+
+<Layout title="Đăng nhập Admin | Blog cá nhân">
+  <section class="py-20">
+    <div class="container mx-auto px-4">
+      <div class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg">
+        <h1 class="text-2xl font-heading font-bold mb-6 text-center">Đăng nhập Admin</h1>
+        
+        {loginError && (
+          <div class="bg-red-100 text-red-700 p-4 rounded-lg mb-6">
+            {loginError}
+          </div>
+        )}
+        
+        <form method="POST" class="space-y-6">
+          <div>
+            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              required
+              class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              placeholder="Nhập địa chỉ email"
+            />
+          </div>
+          
+          <div>
+            <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Mật khẩu</label>
+            <input 
+              type="password" 
+              id="password" 
+              name="password" 
+              required
+              class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              placeholder="Nhập mật khẩu"
+            />
+          </div>
+          
+          <button 
+            type="submit"
+            class="w-full bg-gradient-to-r from-primary to-secondary text-white font-medium py-3 rounded-lg hover:shadow-lg hover:shadow-primary/20 transition-all duration-300"
+          >
+            Đăng nhập
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+</Layout>

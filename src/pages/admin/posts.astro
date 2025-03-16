@@ -1,0 +1,280 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { supabase } from '../../lib/supabase';
+
+// Kiểm tra phiên đăng nhập
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) {
+  return Astro.redirect('/admin');
+}
+
+// Lấy tham số từ URL
+const url = new URL(Astro.request.url);
+const page = parseInt(url.searchParams.get('page') || '1');
+const type = url.searchParams.get('type') || 'all'; // all, post, tutorial
+const search = url.searchParams.get('search') || '';
+const limit = 10;
+const offset = (page - 1) * limit;
+
+// Xây dựng truy vấn cơ bản
+let query = supabase
+  .from('posts')
+  .select('*', { count: 'exact' });
+
+// Lọc theo loại bài viết nếu có
+if (type === 'post') {
+  query = query.eq('post_type', 'post');
+} else if (type === 'tutorial') {
+  query = query.eq('post_type', 'tutorial');
+}
+
+// Thêm tìm kiếm nếu có
+if (search) {
+  query = query.ilike('title', `%${search}%`);
+}
+
+// Thêm phân trang và sắp xếp
+query = query
+  .order('created_at', { ascending: false })
+  .range(offset, offset + limit - 1);
+
+// Lấy bài viết từ database
+const { data: posts, count, error } = await query;
+
+// Tính toán phân trang
+const totalPosts = count || 0;
+const totalPages = Math.ceil(totalPosts / limit);
+
+// Xử lý xóa bài viết
+let deleteMessage = '';
+let deleteError = '';
+
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const action = formData.get('action');
+    const postId = formData.get('post_id');
+    
+    if (action === 'delete' && postId) {
+      // Xóa các liên kết danh mục trước
+      await supabase
+        .from('post_categories')
+        .delete()
+        .eq('post_id', postId);
+      
+      // Sau đó xóa bài viết
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId);
+      
+      if (error) {
+        deleteError = `Lỗi khi xóa bài viết: ${error.message}`;
+      } else {
+        deleteMessage = 'Xóa bài viết thành công!';
+      }
+    }
+  } catch (error) {
+    console.error('Lỗi khi xử lý yêu cầu:', error);
+    deleteError = 'Đã xảy ra lỗi khi xử lý yêu cầu';
+  }
+}
+---
+
+<Layout title="Quản lý bài viết | Admin">
+  <section class="py-12">
+    <div class="container mx-auto px-4">
+      <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-heading font-bold">Quản lý bài viết</h1>
+        
+        <div class="flex space-x-4">
+          <a 
+            href="/admin/dashboard"
+            class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition-colors"
+          >
+            Quay lại Dashboard
+          </a>
+          <a 
+            href="/admin/posts/new"
+            class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            Tạo bài viết mới
+          </a>
+        </div>
+      </div>
+      
+      {deleteMessage && (
+        <div class="bg-green-100 text-green-700 p-4 rounded-lg mb-6">
+          {deleteMessage}
+        </div>
+      )}
+      
+      {deleteError && (
+        <div class="bg-red-100 text-red-700 p-4 rounded-lg mb-6">
+          {deleteError}
+        </div>
+      )}
+      
+      <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8">
+        <div class="p-6 border-b">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="flex flex-wrap gap-4">
+              <a 
+                href={`/admin/posts?type=all${search ? `&search=${search}` : ''}`}
+                class={`px-4 py-2 rounded-full text-sm ${type === 'all' ? 'bg-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+              >
+                Tất cả
+              </a>
+              <a 
+                href={`/admin/posts?type=post${search ? `&search=${search}` : ''}`}
+                class={`px-4 py-2 rounded-full text-sm ${type === 'post' ? 'bg-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+              >
+                Bài viết
+              </a>
+              <a 
+                href={`/admin/posts?type=tutorial${search ? `&search=${search}` : ''}`}
+                class={`px-4 py-2 rounded-full text-sm ${type === 'tutorial' ? 'bg-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+              >
+                Hướng dẫn
+              </a>
+            </div>
+            
+            <form action="" method="get" class="flex">
+              <input type="hidden" name="type" value={type} />
+              <input 
+                type="text" 
+                name="search" 
+                value={search}
+                placeholder="Tìm kiếm bài viết..." 
+                class="px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              />
+              <button 
+                type="submit"
+                class="bg-primary text-white px-4 py-2 rounded-r-lg hover:bg-primary/90 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
+            </form>
+          </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tiêu đề</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loại</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nổi bật</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày tạo</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              {posts && posts.length > 0 ? (
+                posts.map((post) => (
+                  <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-900">{post.title}</div>
+                      <div class="text-sm text-gray-500">/blog/{post.slug}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${post.post_type === 'tutorial' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
+                        {post.post_type === 'tutorial' ? 'Hướng dẫn' : 'Bài viết'}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${post.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                        {post.status === 'published' ? 'Đã đăng' : 'Bản nháp'}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${post.is_featured ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {post.is_featured ? 'Có' : 'Không'}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {post.created_at ? new Date(post.created_at).toLocaleDateString('vi-VN') : ''}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div class="flex justify-end space-x-2">
+                        <a href={`/blog/${post.slug}`} target="_blank" class="text-indigo-600 hover:text-indigo-900">Xem</a>
+                        <a href={`/admin/posts/edit/${post.id}`} class="text-blue-600 hover:text-blue-900">Sửa</a>
+                        <form method="POST" class="inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bài viết này?');">
+                          <input type="hidden" name="action" value="delete" />
+                          <input type="hidden" name="post_id" value={post.id} />
+                          <button type="submit" class="text-red-600 hover:text-red-900">Xóa</button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                    {search ? `Không tìm thấy bài viết nào với từ khóa "${search}"` : 'Không có bài viết nào.'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        
+        {totalPages > 1 && (
+          <div class="px-6 py-4 border-t">
+            <div class="flex justify-between items-center">
+              <div class="text-sm text-gray-700">
+                Hiển thị <span class="font-medium">{offset + 1}</span> đến <span class="font-medium">{Math.min(offset + limit, totalPosts)}</span> trong số <span class="font-medium">{totalPosts}</span> bài viết
+              </div>
+              
+              <nav class="inline-flex rounded-md shadow-sm">
+                {page > 1 && (
+                  <a 
+                    href={`/admin/posts?page=${page - 1}&type=${type}${search ? `&search=${search}` : ''}`} 
+                    class="py-2 px-4 border border-gray-300 bg-white rounded-l-md hover:bg-gray-50"
+                  >
+                    Trước
+                  </a>
+                )}
+                
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  // Hiển thị tối đa 5 trang, ưu tiên trang hiện tại ở giữa
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (page <= 3) {
+                    pageNum = i + 1;
+                  } else if (page >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = page - 2 + i;
+                  }
+                  
+                  return (
+                    <a 
+                      href={`/admin/posts?page=${pageNum}&type=${type}${search ? `&search=${search}` : ''}`} 
+                      class={`py-2 px-4 border-t border-b border-gray-300 ${page === pageNum ? 'bg-primary text-white' : 'bg-white hover:bg-gray-50'}`}
+                    >
+                      {pageNum}
+                    </a>
+                  );
+                })}
+                
+                {page < totalPages && (
+                  <a 
+                    href={`/admin/posts?page=${page + 1}&type=${type}${search ? `&search=${search}` : ''}`} 
+                    class="py-2 px-4 border border-gray-300 bg-white rounded-r-md hover:bg-gray-50"
+                  >
+                    Sau
+                  </a>
+                )}
+              </nav>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+</Layout>

@@ -1,0 +1,63 @@
+---
+import { supabase } from '../../../lib/supabase';
+
+// Kiểm tra xác thực
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) {
+  return Astro.redirect('/admin');
+}
+
+let message = '';
+let success = false;
+
+// Xử lý xóa danh mục
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const id = formData.get('id');
+    
+    if (!id) {
+      message = 'ID danh mục không hợp lệ';
+    } else {
+      // Kiểm tra xem danh mục có bài viết liên kết không
+      const { data: postCategories } = await supabase
+        .from('post_categories')
+        .select('post_id')
+        .eq('category_id', id);
+      
+      if (postCategories && postCategories.length > 0) {
+        // Xóa liên kết giữa danh mục và bài viết
+        const { error: deleteRelationError } = await supabase
+          .from('post_categories')
+          .delete()
+          .eq('category_id', id);
+        
+        if (deleteRelationError) {
+          message = `Lỗi khi xóa liên kết: ${deleteRelationError.message}`;
+        }
+      }
+      
+      // Xóa danh mục
+      const { error: deleteCategoryError } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', id);
+      
+      if (deleteCategoryError) {
+        message = `Lỗi khi xóa danh mục: ${deleteCategoryError.message}`;
+      } else {
+        success = true;
+        message = 'Đã xóa danh mục thành công';
+      }
+    }
+  } catch (error) {
+    message = `Lỗi: ${error.message}`;
+  }
+  
+  // Chuyển hướng về trang danh mục với thông báo
+  return Astro.redirect('/admin/categories');
+}
+---
+
+<!-- Trang này chỉ xử lý POST request và chuyển hướng, không hiển thị giao diện -->
+<meta http-equiv="refresh" content="0;url=/admin/categories">

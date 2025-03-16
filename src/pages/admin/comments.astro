@@ -1,0 +1,180 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { supabase } from '../../lib/supabase';
+
+// Kiểm tra phiên đăng nhập
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) {
+  return Astro.redirect('/admin');
+}
+
+// Lấy danh sách bình luận
+let comments = [];
+let error = null;
+
+try {
+  const { data, error: supabaseError } = await supabase
+    .from('comments')
+    .select(`
+      *,
+      posts (
+        id,
+        title,
+        slug
+      )
+    `)
+    .order('created_at', { ascending: false });
+  
+  if (supabaseError) {
+    error = supabaseError.message;
+  } else {
+    comments = data || [];
+  }
+} catch (e) {
+  error = 'Không thể kết nối đến cơ sở dữ liệu';
+  console.error(e);
+}
+
+// Xử lý xóa bình luận
+let deleteSuccess = false;
+let deleteError = null;
+
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const action = formData.get('action');
+    
+    if (action === 'delete') {
+      const commentId = formData.get('commentId');
+      
+      const { error: deleteErr } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', commentId);
+      
+      if (deleteErr) {
+        deleteError = deleteErr.message;
+      } else {
+        deleteSuccess = true;
+        
+        // Cập nhật lại danh sách bình luận
+        const { data } = await supabase
+          .from('comments')
+          .select(`
+            *,
+            posts (
+              id,
+              title,
+              slug
+            )
+          `)
+          .order('created_at', { ascending: false });
+        
+        comments = data || [];
+      }
+    }
+  } catch (e) {
+    deleteError = 'Đã xảy ra lỗi khi xóa bình luận';
+    console.error(e);
+  }
+}
+---
+
+<Layout title="Quản lý bình luận | Admin">
+  <section class="py-12">
+    <div class="container mx-auto px-4">
+      <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-heading font-bold">Quản lý bình luận</h1>
+        
+        <a 
+          href="/admin/dashboard"
+          class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition-colors"
+        >
+          Quay lại Dashboard
+        </a>
+      </div>
+      
+      {deleteSuccess && (
+        <div class="bg-green-100 text-green-700 p-4 rounded-lg mb-6">
+          Xóa bình luận thành công!
+        </div>
+      )}
+      
+      {deleteError && (
+        <div class="bg-red-100 text-red-700 p-4 rounded-lg mb-6">
+          {deleteError}
+        </div>
+      )}
+      
+      <div class="bg-white p-6 rounded-xl shadow-md">
+        <h2 class="text-xl font-bold mb-6">Danh sách bình luận ({comments.length})</h2>
+        
+        {error ? (
+          <div class="bg-red-100 text-red-700 p-4 rounded-lg">
+            {error}
+          </div>
+        ) : comments.length > 0 ? (
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b">
+                  <th class="text-left py-3 px-4">Người bình luận</th>
+                  <th class="text-left py-3 px-4">Nội dung</th>
+                  <th class="text-left py-3 px-4">Bài viết</th>
+                  <th class="text-left py-3 px-4">Ngày tạo</th>
+                  <th class="text-left py-3 px-4">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comments.map((comment) => (
+                  <tr class="border-b hover:bg-gray-50">
+                    <td class="py-4 px-4">
+                      <div>
+                        <div class="font-medium">{comment.name}</div>
+                        <div class="text-sm text-gray-500">{comment.email}</div>
+                      </div>
+                    </td>
+                    <td class="py-4 px-4">
+                      <div class="max-w-xs truncate">{comment.content}</div>
+                    </td>
+                    <td class="py-4 px-4">
+                      {comment.posts ? (
+                        <a 
+                          href={`/blog/${comment.posts.slug}`}
+                          class="text-primary hover:underline"
+                          target="_blank"
+                        >
+                          {comment.posts.title}
+                        </a>
+                      ) : (
+                        <span class="text-gray-500">Bài viết không tồn tại</span>
+                      )}
+                    </td>
+                    <td class="py-4 px-4 text-gray-600">
+                      {new Date(comment.created_at).toLocaleDateString('vi-VN')}
+                    </td>
+                    <td class="py-4 px-4">
+                      <form method="POST" class="inline">
+                        <input type="hidden" name="action" value="delete" />
+                        <input type="hidden" name="commentId" value={comment.id} />
+                        <button 
+                          type="submit"
+                          class="text-red-600 hover:text-red-800"
+                          onclick="return confirm('Bạn có chắc chắn muốn xóa bình luận này?')"
+                        >
+                          Xóa
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p class="text-gray-500 text-center py-8">Chưa có bình luận nào</p>
+        )}
+      </div>
+    </div>
+  </section>
+</Layout>

@@ -1,0 +1,309 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Giới thiệu | Blog cá nhân" description="Thông tin về tác giả của blog">
+  <!-- Hero Section -->
+  <section class="py-20 bg-white rounded-xl shadow-md">
+    <div class="container mx-auto px-4">
+      <div class="flex flex-col md:flex-row items-center justify-between max-w-5xl mx-auto">
+        <div class="md:w-2/3 mb-12 md:mb-0">
+          <h1 class="text-4xl md:text-5xl font-heading font-bold mb-6 animate-fade-in">Xin chào, tôi là Nguyễn Văn A</h1>
+          <p class="text-gray-600 text-lg mb-10 animate-fade-in animation-delay-200">
+            Một người đam mê UI/UX design và kể chuyện kỹ thuật số, tạo ra những trải nghiệm có ý nghĩa thông qua thiết kế và ngôn từ.
+          </p>
+          <div class="flex flex-wrap gap-6 animate-fade-in animation-delay-400">
+            <a href="/contact" class="btn bg-gradient-to-r from-primary to-secondary text-white px-8 py-4 rounded-full hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 transform hover:-translate-y-1">
+              Liên hệ ngay
+            </a>
+            <a href="#" class="btn border-2 border-gray-300 hover:border-primary hover:text-primary px-8 py-4 rounded-full transition-all duration-300 transform hover:-translate-y-1">
+              Tải CV
+            </a>
+          </div>
+        </div>
+        <div class="md:w-1/3 flex justify-center animate-float">
+          <div class="w-64 h-64 rounded-full overflow-hidden border-4 border-white shadow-xl relative">
+            <div class="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 z-10"></div>
+            <img 
+              src="/images/profile.jpg" 
+              alt="Ảnh hồ sơ" 
+              class="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About Me Section -->
+  <section class="py-24 bg-gradient-to-br from-gray-50 to-gray-100 mt-16 rounded-xl shadow-md">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl md:text-4xl font-heading font-bold text-center mb-6 animate-fade-in">Về tôi</h2>
+      <div class="w-24 h-1 bg-gradient-to-r from-primary to-secondary mx-auto mb-16 rounded-full animate-width"></div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-16 max-w-6xl mx-auto">
+        <div class="bg-white p-10 rounded-xl shadow-md hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 animate-fade-up animation-delay-100">
+          <div class="text-primary mb-8 bg-primary/10 p-5 rounded-full inline-block">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h3 class="text-2xl font-heading font-bold mb-5">Chuyên gia thiết kế</h3>
+          <p class="text-gray-600 text-lg leading-relaxed">
+            Với hơn 5 năm kinh nghiệm trong lĩnh vực UI/UX, tôi đã giúp nhiều startup và doanh nghiệp tạo ra các giải pháp kỹ thuật số lấy người dùng làm trung tâm.
+          </p>
+        </div>
+        
+        <div class="bg-white p-10 rounded-xl shadow-md hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 animate-fade-up animation-delay-300">
+          <div class="text-secondary mb-8 bg-secondary/10 p-5 rounded-full inline-block">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </div>
+          <h3 class="text-2xl font-heading font-bold mb-5">Người sáng tạo nội dung</h3>
+          <p class="text-gray-600 text-lg leading-relaxed">
+            Tôi chia sẻ kiến thức của mình thông qua các bài viết blog, hướng dẫn và workshop, giúp mọi người học hỏi và phát triển trong lĩnh vực thiết kế.
+          </p>
+        </div>
+        
+        <div class="bg-white p-10 rounded-xl shadow-md hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 animate-fade-up animation-delay-500">
+          <div class="text-accent mb-8 bg-accent/10 p-5 rounded-full inline-block">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <h3 class="text-2xl font-heading font-bold mb-5">Xây dựng cộng đồng</h3>
+          <p class="text-gray-600 text-lg leading-relaxed">
+            Tôi đã thành lập và dẫn dắt một cộng đồng gồm hơn 500 nhà thiết kế, thúc đẩy sự hợp tác và chia sẻ kiến thức.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Journey Section -->
+  <section class="py-24 bg-gradient-to-br from-[#121127] to-[#1a1936] text-white mt-16 rounded-xl shadow-md">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl md:text-4xl font-heading font-bold text-center mb-6 animate-fade-in">Hành trình của tôi</h2>
+      <div class="w-24 h-1 bg-gradient-to-r from-primary to-secondary mx-auto mb-16 rounded-full animate-width"></div>
+      
+      <div class="flex flex-col md:flex-row items-center max-w-5xl mx-auto">
+        <div class="md:w-1/2 mb-12 md:mb-0 md:pr-16 animate-slide-right">
+          <p class="text-gray-300 mb-10 text-lg leading-relaxed">
+            Bắt đầu là một nhà thiết kế đồ họa vào năm 2015, tôi đã khám phá niềm đam mê với trải nghiệm kỹ thuật số. Qua nhiều năm học hỏi và thử nghiệm, tôi đã phát triển thành một nhà thiết kế đa năng, hiểu biết cả về khía cạnh sáng tạo và kỹ thuật của thiết kế sản phẩm kỹ thuật số.
+          </p>
+          
+          <ul class="space-y-6">
+            <li class="flex items-start transform transition-all duration-300 hover:translate-x-2">
+              <div class="text-green-400 mr-4 mt-1 bg-green-400/20 p-2 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span class="text-lg">Dẫn dắt đội ngũ thiết kế tại hai startup thành công</span>
+            </li>
+            <li class="flex items-start transform transition-all duration-300 hover:translate-x-2">
+              <div class="text-green-400 mr-4 mt-1 bg-green-400/20 p-2 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span class="text-lg">Xuất bản hơn 50 bài viết và hướng dẫn về thiết kế</span>
+            </li>
+            <li class="flex items-start transform transition-all duration-300 hover:translate-x-2">
+              <div class="text-green-400 mr-4 mt-1 bg-green-400/20 p-2 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span class="text-lg">Diễn giả tại các hội nghị thiết kế lớn</span>
+            </li>
+          </ul>
+        </div>
+        
+        <div class="md:w-1/2 animate-slide-left">
+          <div class="rounded-lg shadow-2xl overflow-hidden transform transition-all duration-500 hover:scale-105">
+            <img 
+              src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80" 
+              alt="Không gian làm việc" 
+              class="w-full h-auto"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-[#121127]/70 to-transparent pointer-events-none"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Skills & Interests Section -->
+  <section class="py-24 bg-gradient-to-br from-[#121127] to-[#1a1936] text-white mt-16 rounded-xl shadow-md">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl md:text-4xl font-heading font-bold text-center mb-6 animate-fade-in">Kỹ năng & Sở thích</h2>
+      <div class="w-24 h-1 bg-gradient-to-r from-primary to-secondary mx-auto mb-16 rounded-full animate-width"></div>
+      
+      <div class="flex flex-col md:flex-row max-w-5xl mx-auto">
+        <div class="md:w-1/2 mb-16 md:mb-0 md:pr-16 animate-slide-right">
+          <h3 class="text-2xl font-heading font-bold mb-10 inline-block relative">
+            Kỹ năng chuyên môn
+            <span class="absolute bottom-0 left-0 w-1/2 h-1 bg-primary"></span>
+          </h3>
+          
+          <div class="space-y-10">
+            <div class="transform transition-all duration-300 hover:translate-x-2">
+              <div class="flex justify-between mb-3">
+                <span class="font-medium text-lg">UI/UX Design</span>
+                <span class="text-lg">95%</span>
+              </div>
+              <div class="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                <div class="bg-gradient-to-r from-primary to-secondary h-3 rounded-full animate-progress" style="width: 95%"></div>
+              </div>
+            </div>
+            
+            <div class="transform transition-all duration-300 hover:translate-x-2">
+              <div class="flex justify-between mb-3">
+                <span class="font-medium text-lg">Product Strategy</span>
+                <span class="text-lg">85%</span>
+              </div>
+              <div class="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                <div class="bg-gradient-to-r from-primary to-secondary h-3 rounded-full animate-progress animation-delay-200" style="width: 85%"></div>
+              </div>
+            </div>
+            
+            <div class="transform transition-all duration-300 hover:translate-x-2">
+              <div class="flex justify-between mb-3">
+                <span class="font-medium text-lg">Front-end Development</span>
+                <span class="text-lg">80%</span>
+              </div>
+              <div class="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                <div class="bg-gradient-to-r from-primary to-secondary h-3 rounded-full animate-progress animation-delay-400" style="width: 80%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="md:w-1/2 animate-slide-left">
+          <h3 class="text-2xl font-heading font-bold mb-10 inline-block relative">
+            Sở thích cá nhân
+            <span class="absolute bottom-0 left-0 w-1/2 h-1 bg-secondary"></span>
+          </h3>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+            <div class="bg-[#1a1936] p-6 rounded-xl shadow-lg transform transition-all duration-300 hover:translate-y--2 hover:shadow-xl hover:bg-[#1e1d40] group">
+              <div class="text-primary mb-4 group-hover:scale-110 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <span class="text-xl font-medium">Nhiếp ảnh</span>
+            </div>
+            
+            <div class="bg-[#1a1936] p-6 rounded-xl shadow-lg transform transition-all duration-300 hover:translate-y--2 hover:shadow-xl hover:bg-[#1e1d40] group">
+              <div class="text-primary mb-4 group-hover:scale-110 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                </svg>
+              </div>
+              <span class="text-xl font-medium">Du lịch</span>
+            </div>
+            
+            <div class="bg-[#1a1936] p-6 rounded-xl shadow-lg transform transition-all duration-300 hover:translate-y--2 hover:shadow-xl hover:bg-[#1e1d40] group">
+              <div class="text-primary mb-4 group-hover:scale-110 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+              </div>
+              <span class="text-xl font-medium">Đọc sách</span>
+            </div>
+            
+            <div class="bg-[#1a1936] p-6 rounded-xl shadow-lg transform transition-all duration-300 hover:translate-y--2 hover:shadow-xl hover:bg-[#1e1d40] group">
+              <div class="text-primary mb-4 group-hover:scale-110 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                </svg>
+              </div>
+              <span class="text-xl font-medium">Nghệ thuật</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section class="py-24 bg-white mt-16 rounded-xl shadow-md">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl md:text-4xl font-heading font-bold text-center mb-6 animate-fade-in">Liên hệ với tôi</h2>
+      <div class="w-24 h-1 bg-gradient-to-r from-primary to-secondary mx-auto mb-16 rounded-full animate-width"></div>
+      
+      <div class="max-w-3xl mx-auto">
+        <div class="flex justify-center mb-16 space-x-10 animate-fade-up">
+          <a href="#" class="bg-gradient-to-br from-[#1DA1F2] to-[#0d8bd7] text-white p-5 rounded-full hover:shadow-lg hover:shadow-[#1DA1F2]/30 transition-all duration-300 transform hover:-translate-y-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+            </svg>
+          </a>
+          <a href="#" class="bg-gradient-to-br from-[#0077B5] to-[#005582] text-white p-5 rounded-full hover:shadow-lg hover:shadow-[#0077B5]/30 transition-all duration-300 transform hover:-translate-y-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+            </svg>
+          </a>
+          <a href="#" class="bg-gradient-to-br from-[#E4405F] to-[#c62e4a] text-white p-5 rounded-full hover:shadow-lg hover:shadow-[#E4405F]/30 transition-all duration-300 transform hover:-translate-y-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+            </svg>
+          </a>
+        </div>
+        
+        <div class="bg-white p-10 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-500 animate-fade-up animation-delay-200">
+          <form class="space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div class="group">
+                <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Họ tên</label>
+                <div class="relative">
+                  <input 
+                    type="text" 
+                    id="name" 
+                    class="w-full px-5 py-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary text-lg transition-all duration-300"
+                    placeholder="Nhập họ tên của bạn"
+                  />
+                  <div class="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-primary to-secondary w-0 group-hover:w-full transition-all duration-500"></div>
+                </div>
+              </div>
+              
+              <div class="group">
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                <div class="relative">
+                  <input 
+                    type="email" 
+                    id="email" 
+                    class="w-full px-5 py-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary text-lg transition-all duration-300"
+                    placeholder="Nhập địa chỉ email của bạn"
+                  />
+                  <div class="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-primary to-secondary w-0 group-hover:w-full transition-all duration-500"></div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="group">
+              <label for="message" class="block text-sm font-medium text-gray-700 mb-2">Tin nhắn</label>
+              <div class="relative">
+                <textarea 
+                  id="message" 
+                  rows="5" 
+                  class="w-full px-5 py-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary text-lg transition-all duration-300"
+                  placeholder="Nhập tin nhắn của bạn"
+                ></textarea>
+                <div class="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-primary to-secondary w-0 group-hover:w-full transition-all duration-500"></div>
+              </div>
+            </div>
+            
+            <button type="submit" class="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white font-medium py-4 rounded-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/20 text-lg">
+              Gửi tin nhắn
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>

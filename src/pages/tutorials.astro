@@ -1,0 +1,242 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import TutorialCard from '../components/TutorialCard.astro';
+import { supabase } from '../lib/supabase';
+
+// Lấy danh mục từ database
+const { data: categories } = await supabase
+  .from('categories')
+  .select('*')
+  .order('name', { ascending: true });
+
+// Lấy tham số tìm kiếm từ URL
+const url = new URL(Astro.request.url);
+const searchQuery = url.searchParams.get('q') || '';
+const categorySlug = url.searchParams.get('category') || '';
+
+// Xây dựng truy vấn Supabase
+let query = supabase
+  .from('posts')
+  .select('*')
+  .eq('status', 'published')
+  .eq('post_type', 'tutorial') // Chỉ lấy bài viết loại tutorial
+  .order('created_at', { ascending: false });
+
+// Thêm điều kiện tìm kiếm nếu có
+if (searchQuery) {
+  query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+}
+
+// Lấy bài viết từ database
+const { data: tutorials, error } = await query;
+
+// Lọc bài viết theo danh mục nếu có
+let filteredTutorials = tutorials || [];
+if (categorySlug && tutorials) {
+  // Lấy category_id từ slug
+  const { data: categoryData } = await supabase
+    .from('categories')
+    .select('id')
+    .eq('slug', categorySlug)
+    .single();
+  
+  if (categoryData) {
+    // Lấy post_id từ bảng post_categories
+    const { data: postCategoriesData } = await supabase
+      .from('post_categories')
+      .select('post_id')
+      .eq('category_id', categoryData.id);
+    
+    if (postCategoriesData && postCategoriesData.length > 0) {
+      const postIds = postCategoriesData.map(item => item.post_id);
+      filteredTutorials = tutorials.filter(tutorial => postIds.includes(tutorial.id));
+    } else {
+      filteredTutorials = [];
+    }
+  }
+}
+
+// Phân trang
+const postsPerPage = 9;
+const currentPage = parseInt(url.searchParams.get('page') || '1');
+const totalPosts = filteredTutorials.length;
+const totalPages = Math.ceil(totalPosts / postsPerPage);
+const paginatedTutorials = filteredTutorials.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
+---
+
+<Layout title="Hướng dẫn | Blog cá nhân" description="Các bài hướng dẫn chi tiết về lập trình và thiết kế">
+  <Hero 
+    title="Hướng dẫn" 
+    subtitle="Các bài hướng dẫn chi tiết giúp bạn nâng cao kỹ năng"
+  />
+
+  <section class="py-12">
+    <div class="container mx-auto px-4">
+      <div class="card-glassmorphism p-6 mb-8">
+        <div class="flex flex-wrap gap-4 justify-between items-center">
+          <div class="flex flex-wrap gap-2">
+            <a href="/tutorials" class={`px-4 py-2 rounded-full ${!categorySlug ? 'bg-primary text-white' : 'hover:bg-gray-100 transition-colors'}`}>
+              Tất cả
+            </a>
+            {categories && categories.map((category) => (
+              <a 
+                href={`/tutorials?category=${category.slug}`} 
+                class={`px-4 py-2 rounded-full ${categorySlug === category.slug ? 'bg-primary text-white' : 'hover:bg-gray-100 transition-colors'}`}
+              >
+                {category.name}
+              </a>
+            ))}
+          </div>
+          <div class="relative">
+            <input 
+              type="text" 
+              id="live-search"
+              placeholder="Tìm kiếm hướng dẫn..." 
+              value={searchQuery}
+              class="pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 w-full"
+            />
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div id="tutorials-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {paginatedTutorials && paginatedTutorials.length > 0 ? (
+          paginatedTutorials.map((tutorial) => (
+            <TutorialCard 
+              title={tutorial.title || ""}
+              description={tutorial.description || ""}
+              image={tutorial.image_url || '/images/tutorial-1.jpg'}
+              url={`/blog/${tutorial.slug || ""}`}
+            />
+          ))
+        ) : (
+          <div class="col-span-3 text-center py-20">
+            <h3 class="text-2xl font-bold mb-4">Không tìm thấy hướng dẫn</h3>
+            <p class="text-gray-600 mb-8">Không có hướng dẫn nào phù hợp với tiêu chí tìm kiếm của bạn.</p>
+            <a href="/tutorials" class="btn btn-primary">Xem tất cả hướng dẫn</a>
+          </div>
+        )}
+      </div>
+
+      <div id="pagination-container">
+        {totalPages > 1 && (
+          <div class="flex justify-center mt-12">
+            <nav class="inline-flex rounded-md shadow">
+              {currentPage > 1 && (
+                <a 
+                  href={`/tutorials?page=${currentPage - 1}${searchQuery ? `&q=${searchQuery}` : ''}${categorySlug ? `&category=${categorySlug}` : ''}`} 
+                  class="py-2 px-4 border border-gray-300 bg-white rounded-l-md hover:bg-gray-50"
+                >
+                  Trước
+                </a>
+              )}
+              
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <a 
+                  href={`/tutorials?page=${page}${searchQuery ? `&q=${searchQuery}` : ''}${categorySlug ? `&category=${categorySlug}` : ''}`} 
+                  class={`py-2 px-4 border-t border-b border-gray-300 ${currentPage === page ? 'bg-primary text-white' : 'bg-white hover:bg-gray-50'}`}
+                >
+                  {page}
+                </a>
+              ))}
+              
+              {currentPage < totalPages && (
+                <a 
+                  href={`/tutorials?page=${currentPage + 1}${searchQuery ? `&q=${searchQuery}` : ''}${categorySlug ? `&category=${categorySlug}` : ''}`} 
+                  class="py-2 px-4 border border-gray-300 bg-white rounded-r-md hover:bg-gray-50"
+                >
+                  Sau
+                </a>
+              )}
+            </nav>
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  // Live search functionality
+  document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('live-search');
+    const tutorialsContainer = document.getElementById('tutorials-container');
+    const paginationContainer = document.getElementById('pagination-container');
+    let searchTimeout;
+    
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const searchValue = e.target.value.trim();
+        
+        // Clear previous timeout
+        clearTimeout(searchTimeout);
+        
+        // Set a timeout to avoid making requests on every keystroke
+        searchTimeout = setTimeout(() => {
+          // Get current URL and update search parameter
+          const url = new URL(window.location.href);
+          
+          if (searchValue) {
+            url.searchParams.set('q', searchValue);
+          } else {
+            url.searchParams.delete('q');
+          }
+          
+          // Reset to page 1 when searching
+          url.searchParams.set('page', '1');
+          
+          // Fetch results without full page reload
+          fetchTutorials(url.toString());
+        }, 300);
+      });
+    }
+    
+    async function fetchTutorials(url) {
+      try {
+        // Show loading state
+        tutorialsContainer.innerHTML = `
+          <div class="col-span-3 text-center py-20">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+            <p class="mt-4 text-gray-600">Đang tìm kiếm...</p>
+          </div>
+        `;
+        
+        // Fetch the new page content
+        const response = await fetch(url);
+        const html = await response.text();
+        
+        // Create a temporary element to parse the HTML
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        // Extract the tutorials container and pagination
+        const newTutorialsContainer = doc.getElementById('tutorials-container');
+        const newPaginationContainer = doc.getElementById('pagination-container');
+        
+        // Update the DOM
+        if (newTutorialsContainer) {
+          tutorialsContainer.innerHTML = newTutorialsContainer.innerHTML;
+        }
+        
+        if (newPaginationContainer && paginationContainer) {
+          paginationContainer.innerHTML = newPaginationContainer.innerHTML;
+        }
+        
+        // Update browser history without reloading
+        window.history.pushState({}, '', url);
+      } catch (error) {
+        console.error('Error fetching tutorials:', error);
+        tutorialsContainer.innerHTML = `
+          <div class="col-span-3 text-center py-20">
+            <h3 class="text-2xl font-bold mb-4">Đã xảy ra lỗi</h3>
+            <p class="text-gray-600 mb-8">Không thể tải dữ liệu. Vui lòng thử lại sau.</p>
+          </div>
+        `;
+      }
+    }
+  });
+</script>

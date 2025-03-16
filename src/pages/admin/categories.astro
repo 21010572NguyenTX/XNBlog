@@ -1,0 +1,185 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { supabase } from '../../lib/supabase';
+
+// Kiểm tra xác thực
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) {
+  return Astro.redirect('/admin');
+}
+
+// Lấy danh sách danh mục
+const { data: categories, error } = await supabase
+  .from('categories')
+  .select('*')
+  .order('name', { ascending: true });
+
+// Xử lý thêm danh mục mới
+let message = '';
+let messageType = '';
+
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const name = formData.get('name');
+    const slug = formData.get('slug');
+    const description = formData.get('description');
+
+    if (!name || !slug) {
+      message = 'Tên và slug là bắt buộc';
+      messageType = 'error';
+    } else {
+      const { data, error } = await supabase
+        .from('categories')
+        .insert([
+          { name, slug, description }
+        ])
+        .select();
+
+      if (error) {
+        message = `Lỗi: ${error.message}`;
+        messageType = 'error';
+      } else {
+        message = 'Đã thêm danh mục thành công';
+        messageType = 'success';
+        return Astro.redirect('/admin/categories');
+      }
+    }
+  } catch (error) {
+    message = `Lỗi: ${error.message}`;
+    messageType = 'error';
+  }
+}
+---
+
+<Layout title="Quản lý danh mục | Admin">
+  <div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-3xl font-bold">Quản lý danh mục</h1>
+      <a href="/admin/dashboard" class="btn btn-outline">Quay lại Dashboard</a>
+    </div>
+
+    {message && (
+      <div class={`p-4 mb-6 rounded-lg ${messageType === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+        {message}
+      </div>
+    )}
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div class="md:col-span-1">
+        <div class="card-glassmorphism p-6">
+          <h2 class="text-xl font-bold mb-4">Thêm danh mục mới</h2>
+          <form method="POST">
+            <div class="mb-4">
+              <label for="name" class="block text-sm font-medium mb-1">Tên danh mục</label>
+              <input 
+                type="text" 
+                id="name" 
+                name="name" 
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+            
+            <div class="mb-4">
+              <label for="slug" class="block text-sm font-medium mb-1">Slug</label>
+              <input 
+                type="text" 
+                id="slug" 
+                name="slug" 
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <p class="text-xs text-gray-500 mt-1">URL thân thiện, chỉ chứa chữ thường, số và dấu gạch ngang</p>
+            </div>
+            
+            <div class="mb-6">
+              <label for="description" class="block text-sm font-medium mb-1">Mô tả</label>
+              <textarea 
+                id="description" 
+                name="description" 
+                rows="3"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+              ></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-full">Thêm danh mục</button>
+          </form>
+        </div>
+      </div>
+      
+      <div class="md:col-span-2">
+        <div class="card-glassmorphism p-6">
+          <h2 class="text-xl font-bold mb-4">Danh sách danh mục</h2>
+          
+          {categories && categories.length > 0 ? (
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="border-b">
+                    <th class="py-3 px-4 text-left">Tên</th>
+                    <th class="py-3 px-4 text-left">Slug</th>
+                    <th class="py-3 px-4 text-left">Mô tả</th>
+                    <th class="py-3 px-4 text-center">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categories.map((category) => (
+                    <tr class="border-b hover:bg-gray-50">
+                      <td class="py-3 px-4">
+                        <span>{category.name}</span>
+                      </td>
+                      <td class="py-3 px-4">{category.slug}</td>
+                      <td class="py-3 px-4 max-w-xs truncate">{category.description}</td>
+                      <td class="py-3 px-4 text-center">
+                        <div class="flex justify-center space-x-2">
+                          <a href={`/admin/categories/edit/${category.id}`} class="text-blue-500 hover:text-blue-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </a>
+                          <form method="POST" action="/admin/categories/delete" class="inline">
+                            <input type="hidden" name="id" value={category.id} />
+                            <button type="submit" class="text-red-500 hover:text-red-700" onclick="return confirm('Bạn có chắc chắn muốn xóa danh mục này?')">
+                              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div class="text-center py-8">
+              <p class="text-gray-500">Chưa có danh mục nào.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  // Tự động tạo slug từ tên danh mục
+  document.addEventListener('DOMContentLoaded', () => {
+    const nameInput = document.getElementById('name');
+    const slugInput = document.getElementById('slug');
+    
+    if (nameInput && slugInput) {
+      nameInput.addEventListener('input', () => {
+        const slug = nameInput.value
+          .toLowerCase()
+          .replace(/[^\w\s-]/g, '') // Loại bỏ ký tự đặc biệt
+          .replace(/\s+/g, '-') // Thay thế khoảng trắng bằng dấu gạch ngang
+          .replace(/-+/g, '-'); // Loại bỏ nhiều dấu gạch ngang liên tiếp
+        
+        slugInput.value = slug;
+      });
+    }
+  });
+</script>

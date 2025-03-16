@@ -1,0 +1,160 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TutorialCard from '../components/TutorialCard.astro';
+import CategoryCard from '../components/CategoryCard.astro';
+import SearchBar from '../components/SearchBar.astro';
+import IntroSection from '../components/IntroSection.astro';
+import { supabase } from '../lib/supabase';
+
+// Lấy bài viết nổi bật từ database
+const { data: featuredPosts } = await supabase
+  .from('posts')
+  .select('*')
+  .eq('is_featured', true)
+  .eq('status', 'published')
+  .order('created_at', { ascending: false })
+  .limit(3);
+
+// Lấy bài viết mới nhất (blog posts)
+const { data: latestPosts } = await supabase
+  .from('posts')
+  .select('*')
+  .eq('status', 'published')
+  .eq('post_type', 'post')
+  .order('created_at', { ascending: false })
+  .limit(3);
+
+// Lấy hướng dẫn mới nhất (tutorials)
+const { data: latestTutorials } = await supabase
+  .from('posts')
+  .select('*')
+  .eq('status', 'published')
+  .eq('post_type', 'tutorial')
+  .order('created_at', { ascending: false })
+  .limit(3);
+
+// Lấy danh mục từ database
+const { data: categories } = await supabase
+  .from('categories')
+  .select('*')
+  .limit(4);
+
+// Debug
+console.log('Số bài viết nổi bật:', featuredPosts?.length || 0);
+console.log('Số bài viết mới nhất:', latestPosts?.length || 0);
+console.log('Số hướng dẫn mới nhất:', latestTutorials?.length || 0);
+---
+
+<Layout title="Trang chủ | Blog cá nhân">
+  <IntroSection />
+
+  <section class="py-8">
+    <div class="container mx-auto px-4">
+      <SearchBar />
+    </div>
+  </section>
+  
+  <section class="py-12 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5 rounded-3xl my-8">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl font-heading font-bold mb-8 text-center gradient-text">Bài viết nổi bật</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {featuredPosts && featuredPosts.length > 0 ? (
+          featuredPosts.map((post) => (
+            <TutorialCard 
+              title={post.title || ""}
+              description={post.description || ""}
+              image={post.image_url || '/images/tutorial-1.jpg'}
+              url={`/blog/${post.slug || ""}`}
+            />
+          ))
+        ) : (
+          <div class="col-span-3 text-center py-10">
+            <p class="text-gray-500">Chưa có bài viết nổi bật.</p>
+          </div>
+        )}
+      </div>
+      <div class="text-center mt-10">
+        <a href="/blog" class="btn btn-primary">
+          Xem tất cả bài viết
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-12">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl font-heading font-bold mb-8 text-center gradient-text">Bài viết mới nhất</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {latestPosts && latestPosts.length > 0 ? (
+          latestPosts.map((post) => (
+            <TutorialCard 
+              title={post.title || ""}
+              description={post.description || ""}
+              image={post.image_url || '/images/blog-1.jpg'}
+              url={`/blog/${post.slug || ""}`}
+            />
+          ))
+        ) : (
+          <div class="col-span-3 text-center py-10">
+            <p class="text-gray-500">Chưa có bài viết mới.</p>
+          </div>
+        )}
+      </div>
+      <div class="text-center mt-10">
+        <a href="/blog" class="btn btn-primary">
+          Xem tất cả bài viết
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-12 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5 rounded-3xl my-8">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl font-heading font-bold mb-8 text-center gradient-text">Hướng dẫn mới nhất</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {latestTutorials && latestTutorials.length > 0 ? (
+          latestTutorials.map((tutorial) => (
+            <TutorialCard 
+              title={tutorial.title || ""}
+              description={tutorial.description || ""}
+              image={tutorial.image_url || '/images/tutorial-1.jpg'}
+              url={`/blog/${tutorial.slug || ""}`}
+            />
+          ))
+        ) : (
+          <div class="col-span-3 text-center py-10">
+            <p class="text-gray-500">Chưa có hướng dẫn mới.</p>
+          </div>
+        )}
+      </div>
+      <div class="text-center mt-10">
+        <a href="/tutorials" class="btn btn-primary">
+          Xem tất cả hướng dẫn
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-12">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl font-heading font-bold mb-8 text-center gradient-text">Khám phá danh mục</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {categories && categories.length > 0 ? (
+          categories.map((category) => (
+            <CategoryCard 
+              title={category.name || ""}
+              description={category.description || ""}
+              icon={category.icon || '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>'}
+              url={`/blog?category=${category.slug || ""}`}
+              color={category.color || "purple"}
+            />
+          ))
+        ) : (
+          <div class="col-span-4 text-center py-10">
+            <p class="text-gray-500">Chưa có danh mục nào.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+</Layout>

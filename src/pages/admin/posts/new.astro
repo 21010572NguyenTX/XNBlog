@@ -1,0 +1,359 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { supabase } from '../../../lib/supabase';
+
+// Kiểm tra phiên đăng nhập
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) {
+  return Astro.redirect('/admin');
+}
+
+// Lấy thông tin user từ bảng users dựa trên email
+let currentUser = null;
+try {
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('email', session.user.email)
+    .single();
+  
+  if (userError) {
+    console.error('Lỗi khi lấy thông tin người dùng:', userError);
+  } else {
+    currentUser = userData;
+  }
+} catch (error) {
+  console.error('Lỗi khi truy vấn người dùng:', error);
+}
+
+// Lấy danh sách danh mục
+let categories = [];
+try {
+  const { data } = await supabase
+    .from('categories')
+    .select('*')
+    .order('name');
+  
+  categories = data || [];
+} catch (error) {
+  console.error('Lỗi khi lấy danh mục:', error);
+}
+
+// Xử lý tạo bài viết mới
+let formError = null;
+let formSuccess = false;
+
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    
+    const title = formData.get('title');
+    const slug = formData.get('slug');
+    const description = formData.get('description');
+    const content = formData.get('content');
+    const image_url = formData.get('image_url');
+    const categoryIds = formData.getAll('categories');
+    const post_type = formData.get('post_type') || 'post'; // Mặc định là post nếu không chọn
+    const is_featured = formData.get('is_featured') === 'on';
+    
+    // Kiểm tra dữ liệu
+    if (!title || !slug || !content || !image_url) {
+      formError = 'Vui lòng điền đầy đủ thông tin bắt buộc';
+    } else if (!currentUser) {
+      formError = 'Không tìm thấy thông tin người dùng';
+    } else {
+      // Tạo bài viết mới với author là UUID của người dùng
+      const newPost = {
+        title,
+        slug,
+        description,
+        content,
+        image_url,
+        author: currentUser.id, // Sử dụng UUID của người dùng
+        post_type, // Thêm loại bài viết
+        is_featured, // Thêm trạng thái nổi bật
+        status: 'published' // Mặc định là published
+      };
+      
+      console.log('Đang tạo bài viết mới:', newPost);
+      
+      const { data, error } = await supabase
+        .from('posts')
+        .insert(newPost)
+        .select();
+      
+      if (error) {
+        console.error('Lỗi khi tạo bài viết:', error);
+        formError = error.message;
+      } else if (data && data.length > 0) {
+        const postId = data[0].id;
+        console.log('Đã tạo bài viết thành công với ID:', postId);
+        
+        // Thêm danh mục cho bài viết
+        if (categoryIds.length > 0) {
+          const postCategories = categoryIds.map(categoryId => ({
+            post_id: postId,
+            category_id: categoryId
+          }));
+          
+          const { error: categoryError } = await supabase
+            .from('post_categories')
+            .insert(postCategories);
+          
+          if (categoryError) {
+            console.error('Lỗi khi thêm danh mục cho bài viết:', categoryError);
+          }
+        }
+        
+        formSuccess = true;
+      }
+    }
+  } catch (error) {
+    console.error('Lỗi khi tạo bài viết:', error);
+    formError = 'Đã xảy ra lỗi khi tạo bài viết';
+  }
+}
+---
+
+<Layout title="Tạo bài viết mới | Admin">
+  <!-- TinyMCE CDN -->
+  <script is:inline src="https://cdn.tiny.cloud/1/qr9456y1e0oaofbjdqseues9zhdrm4zrimpe9xaqcul3m5uh/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+
+  <section class="py-12">
+    <div class="container mx-auto px-4">
+      <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-heading font-bold">Tạo bài viết mới</h1>
+        
+        <a 
+          href="/admin/dashboard"
+          class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition-colors"
+        >
+          Quay lại Dashboard
+        </a>
+      </div>
+      
+      {formSuccess ? (
+        <div class="bg-green-100 text-green-700 p-6 rounded-xl mb-8">
+          <h2 class="text-xl font-bold mb-2">Tạo bài viết thành công!</h2>
+          <p class="mb-4">Bài viết của bạn đã được tạo thành công.</p>
+          <div class="flex space-x-4">
+            <a 
+              href="/admin/posts/new"
+              class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              Tạo bài viết khác
+            </a>
+            <a 
+              href="/admin/dashboard"
+              class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Quay lại Dashboard
+            </a>
+          </div>
+        </div>
+      ) : (
+        <div class="bg-white p-8 rounded-xl shadow-md">
+          {formError && (
+            <div class="bg-red-100 text-red-700 p-4 rounded-lg mb-6">
+              {formError}
+            </div>
+          )}
+          
+          <form method="POST" class="space-y-6" id="post-form">
+            <div>
+              <label for="title" class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề <span class="text-red-500">*</span></label>
+              <input 
+                type="text" 
+                id="title" 
+                name="title" 
+                required
+                class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                placeholder="Nhập tiêu đề bài viết"
+              />
+            </div>
+            
+            <div>
+              <label for="slug" class="block text-sm font-medium text-gray-700 mb-2">Slug <span class="text-red-500">*</span></label>
+              <input 
+                type="text" 
+                id="slug" 
+                name="slug" 
+                required
+                class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                placeholder="nhap-tieu-de-bai-viet"
+              />
+              <p class="text-sm text-gray-500 mt-1">URL thân thiện cho bài viết, chỉ bao gồm chữ thường, số và dấu gạch ngang.</p>
+            </div>
+            
+            <div>
+              <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Mô tả ngắn</label>
+              <textarea 
+                id="description" 
+                name="description" 
+                rows="2"
+                class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                placeholder="Nhập mô tả ngắn cho bài viết"
+              ></textarea>
+            </div>
+            
+            <div>
+              <label for="content" class="block text-sm font-medium text-gray-700 mb-2">Nội dung <span class="text-red-500">*</span></label>
+              <textarea 
+                id="content" 
+                name="content" 
+                rows="12"
+                class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                placeholder="Nhập nội dung bài viết"
+              ></textarea>
+            </div>
+            
+            <div>
+              <label for="image_url" class="block text-sm font-medium text-gray-700 mb-2">URL hình ảnh thu nhỏ <span class="text-red-500">*</span></label>
+              <input 
+                type="url" 
+                id="image_url" 
+                name="image_url" 
+                required
+                class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                placeholder="https://example.com/image.jpg"
+              />
+              <p class="text-sm text-gray-500 mt-1">URL hình ảnh thu nhỏ đại diện cho bài viết (bắt buộc).</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Loại bài viết <span class="text-red-500">*</span></label>
+                <div class="flex space-x-4">
+                  <label class="flex items-center space-x-2">
+                    <input 
+                      type="radio" 
+                      name="post_type" 
+                      value="post"
+                      checked
+                      class="text-primary focus:ring-primary"
+                    />
+                    <span>Bài viết (Blog)</span>
+                  </label>
+                  <label class="flex items-center space-x-2">
+                    <input 
+                      type="radio" 
+                      name="post_type" 
+                      value="tutorial"
+                      class="text-primary focus:ring-primary"
+                    />
+                    <span>Hướng dẫn (Tutorial)</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tùy chọn</label>
+                <label class="flex items-center space-x-2">
+                  <input 
+                    type="checkbox" 
+                    name="is_featured" 
+                    class="rounded text-primary focus:ring-primary"
+                  />
+                  <span>Đánh dấu là bài viết nổi bật</span>
+                </label>
+              </div>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Danh mục</label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {categories.map((category) => (
+                  <label class="flex items-center space-x-2">
+                    <input 
+                      type="checkbox" 
+                      name="categories" 
+                      value={category.id}
+                      class="rounded text-primary focus:ring-primary"
+                    />
+                    <span>{category.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            
+            <div class="pt-4">
+              <button 
+                type="submit"
+                id="submit-button"
+                class="bg-gradient-to-r from-primary to-secondary text-white font-medium py-3 px-6 rounded-lg hover:shadow-lg hover:shadow-primary/20 transition-all duration-300"
+              >
+                Tạo bài viết
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  </section>
+</Layout>
+
+<script>
+  // Khởi tạo TinyMCE
+  tinymce.init({
+    selector: '#content',
+    plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
+    toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
+    tinycomments_mode: 'embedded',
+    tinycomments_author: 'Author name',
+    mergetags_list: [
+      { value: 'First.Name', title: 'First Name' },
+      { value: 'Email', title: 'Email' },
+    ],
+    ai_request: (request, respondWith) => respondWith.string(() => Promise.reject("See docs to implement AI Assistant")),
+    language: 'vi',
+    height: 500,
+    branding: false,
+    promotion: false,
+    setup: function(editor) {
+      // Đảm bảo nội dung TinyMCE được cập nhật vào textarea trước khi gửi form
+      editor.on('change', function() {
+        editor.save();
+      });
+    }
+  });
+
+  // Tự động tạo slug từ tiêu đề
+  document.addEventListener('DOMContentLoaded', () => {
+    const titleInput = document.getElementById('title');
+    const slugInput = document.getElementById('slug');
+    
+    if (titleInput && slugInput) {
+      titleInput.addEventListener('input', () => {
+        const title = titleInput.value;
+        const slug = title
+          .toLowerCase()
+          .replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g, 'a')
+          .replace(/[èéẹẻẽêềếệểễ]/g, 'e')
+          .replace(/[ìíịỉĩ]/g, 'i')
+          .replace(/[òóọỏõôồốộổỗơờớợởỡ]/g, 'o')
+          .replace(/[ùúụủũưừứựửữ]/g, 'u')
+          .replace(/[ỳýỵỷỹ]/g, 'y')
+          .replace(/đ/g, 'd')
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-+|-+$/g, '');
+        
+        slugInput.value = slug;
+      });
+    }
+
+    // Xử lý form submit để đảm bảo TinyMCE cập nhật nội dung trước khi gửi
+    const form = document.getElementById('post-form');
+    const submitButton = document.getElementById('submit-button');
+    
+    if (form && submitButton) {
+      form.addEventListener('submit', function(e) {
+        // Đảm bảo TinyMCE đã cập nhật nội dung vào textarea
+        if (tinymce.get('content')) {
+          tinymce.get('content').save();
+        }
+      });
+    }
+  });
+</script>
